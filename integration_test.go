@@ -35,6 +35,16 @@ func TestMain(m *testing.M) {
 
 func TestEcho(t *testing.T) {
 	Convey("Echo should work", t, func() {
-		So(c.Echo(ctx), ShouldBeNil)
+		expected := "pong"
+		actual, err := c.Echo(ctx, expected)
+		So(err, ShouldBeNil)
+		So(actual.Ping, ShouldEqual, expected)
+	})
+}
+
+func TestLogin(t *testing.T) {
+	Convey("Login should work", t, func() {
+		_, err := c.Login(ctx)
+		So(err, ShouldBeNil)
 	})
 }

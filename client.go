@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"runtime"
 	"sort"
 	"time"
@@ -81,6 +82,7 @@ func (c *Client) secret() string {
 }
 
 // Request contains parameters
+// FIXME: make Method just another parameter
 type Request struct {
 	Method     string
 	Parameters map[string]string
@@ -129,8 +131,20 @@ func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
 	}
 	u := c.url(c.urlAuth(), r)
 
-	fmt.Printf("Visit the following URL in your web browser: %s\n", u)
-	time.Sleep(time.Second * 20)
+	// fmt.Printf("Visit the following URL in your web browser: %s\n", u)
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", u).Start()
+	case "windows", "darwin":
+		err = exec.Command("open", u).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	time.Sleep(time.Second * 5)
 	var t AuthResp
 	t, err = c.Token(ctx, m.Frob)
 	// FIXME: check for error code 101 here and try again
@@ -158,7 +172,10 @@ func (c *Client) url(s string, r Request) string {
 	}
 	q := u.Query()
 
-	// starts with method
+	// force format to json
+	r.Parameters["format"] = "json"
+
+	// include method in parameters if needed
 	if r.Method != "" {
 		r.Parameters["method"] = r.Method
 	}
@@ -214,7 +231,7 @@ func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
 	var m map[string]FrobResp
 	r := Request{
 		Method:     "rtm.auth.getFrob",
-		Parameters: map[string]string{"format": "json"},
+		Parameters: map[string]string{},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return FrobResp{}, err
@@ -232,7 +249,7 @@ func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 	var m map[string]TokenResp
 	r := Request{
 		Method:     "rtm.auth.getToken",
-		Parameters: map[string]string{"frob": f, "format": "json"},
+		Parameters: map[string]string{"frob": f},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return AuthResp{}, err
@@ -245,16 +262,40 @@ func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 }
 
 // Echo should echo the sent values
-func (c *Client) Echo(ctx context.Context) error {
-	var m map[string]arbResp
+func (c *Client) Echo(ctx context.Context, p string) (EchoResp, error) {
+	var m map[string]EchoResp
 	r := Request{
 		Method:     "rtm.test.echo",
-		Parameters: map[string]string{"foo": "bar", "format": "json"},
+		Parameters: map[string]string{"ping": p},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
-		return err
+		return EchoResp{}, err
 	}
-	return nil
+	fmt.Printf("echo response: %q", m)
+	er := m["rsp"]
+	if er.Status == "fail" {
+		return EchoResp{}, &er.Error
+	}
+	return er, nil
+}
+
+// Login should report what user if any is logged in
+func (c *Client) Login(ctx context.Context) (LoginResp, error) {
+	var m map[string]LoginResp
+	r := Request{
+		Method:     "rtm.test.login",
+		Parameters: map[string]string{},
+	}
+	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
+		return LoginResp{}, err
+	}
+	// FIXME: return something useful
+	fmt.Printf("login response: %q", m)
+	lr := m["rsp"]
+	if lr.Status == "fail" {
+		return LoginResp{}, &lr.Error
+	}
+	return lr, nil
 }
 
 func mustNotErr(err error) {

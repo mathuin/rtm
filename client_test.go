@@ -96,8 +96,8 @@ var urltests = []struct {
 	requestParams map[string]string
 	expected      string
 }{
-	{"1234567890", "987654321", map[string]string{"perms": "delete"}, "https://www.rememberthemilk.com/services/auth/?api_key=1234567890&api_sig=efb5d96f44d33b72081b81ddde96005d&perms=delete"},
-	{"1234567890", "987654321", map[string]string{"method": "rtm.tasks.getList", "auth_token": "666a777b999c", "format": "json", "filter": "status:incomplete AND due:never OR due:today"}, "https://www.rememberthemilk.com/services/auth/?api_key=1234567890&api_sig=9094df9d88641c8c0f5666accc335761&auth_token=666a777b999c&filter=status%3Aincomplete+AND+due%3Anever+OR+due%3Atoday&format=json&method=rtm.tasks.getList"},
+	{"1234567890", "987654321", map[string]string{"perms": "delete"}, "https://www.rememberthemilk.com/services/auth/?api_key=1234567890&api_sig=076f380119ba2ff3a7c20f060d864533&format=json&perms=delete"},
+	{"1234567890", "987654321", map[string]string{"method": "rtm.tasks.getList", "auth_token": "666a777b999c", "filter": "status:incomplete AND due:never OR due:today"}, "https://www.rememberthemilk.com/services/auth/?api_key=1234567890&api_sig=9094df9d88641c8c0f5666accc335761&auth_token=666a777b999c&filter=status%3Aincomplete+AND+due%3Anever+OR+due%3Atoday&format=json&method=rtm.tasks.getList"},
 }
 
 func TestUrl(t *testing.T) {
