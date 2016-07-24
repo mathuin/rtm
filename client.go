@@ -7,10 +7,15 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
+	"runtime"
 	"sort"
+	"time"
 
 	"golang.org/x/net/context"
 )
@@ -21,6 +26,9 @@ const AuthServicesURL = "https://www.rememberthemilk.com/services/auth/"
 // RESTEndpointURL is the REST endpoint URL.
 const RESTEndpointURL = "https://api.rememberthemilk.com/services/rest/"
 
+// Version is the version of the library.
+const Version = "0.1.0"
+
 // Secrets indicate information which will be loaded from a file
 type Secrets struct {
 	APIKey string `json:"api_key"`
@@ -29,10 +37,11 @@ type Secrets struct {
 
 // Client can create RTM sessions and interact with the API.
 type Client struct {
-	APIKey  string
-	Secret  string
-	AuthURL string
-	BaseURL string
+	APIKey     string
+	Secret     string
+	HTTPClient http.Client
+	AuthURL    string
+	BaseURL    string
 }
 
 func (c *Client) readSecrets(filename string) error {
@@ -109,34 +118,29 @@ func (c *Client) Sign(r Request) string {
 
 // CreateSession is a required step to authenticate for further API use.
 func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
-	var SessionID string
+	var m FrobResp
 
-	// for desktop applications:
-	// 1. make call to rtm.auth.getFrob
-	r1 := Request{}
-	r1.Method = "rtm.auth.getFrob"
-	// u1 := c.url(c.urlBase(), r1)
-	// GET RESULTS
-	frob := ""
+	m, err := c.Frob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r := Request{
+		Parameters: map[string]string{"perms": "delete", "frob": m.Frob},
+	}
+	u := c.url(c.urlAuth(), r)
 
-	// 2. pass result as frob parameter in authentication URL
-	r2 := Request{}
-	r2.Parameters["perms"] = "delete"
-	r2.Parameters["frob"] = frob
-
-	// this gets launched in a browser, user authenticates.
-	// authu := c.url(c.urlAuth(), r2)
-
-	// when user returns...
-
-	// 3. call to rtm.auth.getToken
-	// with frob parameters
-	// get <auth> element with <token>
-	// save as auth_token!
+	fmt.Printf("Visit the following URL in your web browser: %s\n", u)
+	time.Sleep(time.Second * 20)
+	var t AuthResp
+	t, err = c.Token(ctx, m.Frob)
+	// FIXME: check for error code 101 here and try again
+	if err != nil {
+		return nil, err
+	}
 
 	return &Session{
-		parent:    c,
-		SessionID: SessionID,
+		parent: c,
+		Token:  t.Token,
 	}, nil
 }
 
@@ -175,6 +179,82 @@ func (c *Client) url(s string, r Request) string {
 
 	// Now return the string!
 	return u.String()
+}
+
+func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) error {
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("github.com/mathuin/rtm/%s (gover %s)", Version, runtime.Version()))
+	req.Cancel = ctx.Done()
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	var b bytes.Buffer
+	if _, err := io.Copy(&b, resp.Body); err != nil {
+		return err
+	}
+	debug := b.String()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status code: %q %q", resp.StatusCode, debug)
+	}
+	if err := json.NewDecoder(&b).Decode(jsonInto); err != nil {
+		return fmt.Errorf("not expected: %q %q", err, debug)
+	}
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Frob should return a frob value.
+func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
+	var m map[string]FrobResp
+	r := Request{
+		Method:     "rtm.auth.getFrob",
+		Parameters: map[string]string{"format": "json"},
+	}
+	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
+		return FrobResp{}, err
+	}
+	fr := m["rsp"]
+	if fr.Status == "fail" {
+		return FrobResp{}, &fr.Error
+	}
+	return fr, nil
+}
+
+// Token returns an auth Token
+// NB: server returns TokenResp, AuthResp is extracted
+func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
+	var m map[string]TokenResp
+	r := Request{
+		Method:     "rtm.auth.getToken",
+		Parameters: map[string]string{"frob": f, "format": "json"},
+	}
+	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
+		return AuthResp{}, err
+	}
+	tr := m["rsp"]
+	if tr.Status == "fail" {
+		return AuthResp{}, &tr.Error
+	}
+	return tr.Auth, nil
+}
+
+// Echo should echo the sent values
+func (c *Client) Echo(ctx context.Context) error {
+	var m map[string]arbResp
+	r := Request{
+		Method:     "rtm.test.echo",
+		Parameters: map[string]string{"foo": "bar", "format": "json"},
+	}
+	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
+		return err
+	}
+	return nil
 }
 
 func mustNotErr(err error) {
