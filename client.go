@@ -111,12 +111,28 @@ func (c *Client) Sign(r Request) string {
 func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
 	var SessionID string
 
-	// add stuff
-	r := Request{}
+	// for desktop applications:
+	// 1. make call to rtm.auth.getFrob
+	r1 := Request{}
+	r1.Method = "rtm.auth.getFrob"
+	// u1 := c.url(c.urlBase(), r1)
+	// GET RESULTS
+	frob := ""
 
-	r.Parameters["perms"] = "delete"
-	// r.Parameters["api_sig"] = c.Sign(r)
-	// u := c.url(c.authUrl(), r)
+	// 2. pass result as frob parameter in authentication URL
+	r2 := Request{}
+	r2.Parameters["perms"] = "delete"
+	r2.Parameters["frob"] = frob
+
+	// this gets launched in a browser, user authenticates.
+	// authu := c.url(c.urlAuth(), r2)
+
+	// when user returns...
+
+	// 3. call to rtm.auth.getToken
+	// with frob parameters
+	// get <auth> element with <token>
+	// save as auth_token!
 
 	return &Session{
 		parent:    c,
@@ -150,11 +166,15 @@ func (c *Client) url(s string, r Request) string {
 	for k, v := range r.Parameters {
 		q.Set(k, v)
 	}
-	q.Set("api_sig", c.Sign(r))
 
 	// then api_sig
-	ret := ""
-	return ret
+	q.Set("api_sig", c.Sign(r))
+
+	// Put it all together
+	u.RawQuery = q.Encode()
+
+	// Now return the string!
+	return u.String()
 }
 
 func mustNotErr(err error) {
