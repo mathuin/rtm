@@ -45,6 +45,34 @@ type Client struct {
 	BaseURL    string
 }
 
+func (c *Client) apiKey() string {
+	if c.APIKey == "" {
+		panic("API key undefined")
+	}
+	return c.APIKey
+}
+
+func (c *Client) secret() string {
+	if c.Secret == "" {
+		panic("Secret undefined")
+	}
+	return c.Secret
+}
+
+func (c *Client) urlAuth() string {
+	if c.AuthURL == "" {
+		return AuthServicesURL
+	}
+	return c.AuthURL
+}
+
+func (c *Client) urlBase() string {
+	if c.BaseURL == "" {
+		return RESTEndpointURL
+	}
+	return c.BaseURL
+}
+
 func (c *Client) readSecrets(filename string) error {
 	// unmarshal json from file
 	sfile, err := ioutil.ReadFile(filename)
@@ -58,27 +86,6 @@ func (c *Client) readSecrets(filename string) error {
 	c.APIKey = s.APIKey
 	c.Secret = s.Secret
 	return nil
-}
-
-func (c *Client) urlAuth() string {
-	if c.AuthURL == "" {
-		return AuthServicesURL
-	}
-	return c.AuthURL
-}
-
-func (c *Client) apiKey() string {
-	if c.APIKey == "" {
-		panic("API key undefined")
-	}
-	return c.APIKey
-}
-
-func (c *Client) secret() string {
-	if c.Secret == "" {
-		panic("Secret undefined")
-	}
-	return c.Secret
 }
 
 // Request contains parameters
@@ -136,7 +143,7 @@ func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
 	}
 
 	time.Sleep(time.Second * 5)
-	var t AuthResp
+	var t TokenResp
 	t, err = c.Token(ctx, m.Frob)
 	// FIXME: check for error code 101 here and try again
 	if err != nil {
@@ -145,15 +152,8 @@ func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
 
 	return &Session{
 		parent: c,
-		Token:  t.Token,
+		Token:  t.Auth.Token,
 	}, nil
-}
-
-func (c *Client) urlBase() string {
-	if c.BaseURL == "" {
-		return RESTEndpointURL
-	}
-	return c.BaseURL
 }
 
 func (c *Client) url(s string, r Request) string {
@@ -214,45 +214,32 @@ func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) e
 
 // Frob should return a frob value.
 func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
-	var m map[string]FrobResp
+	var m frobResp
 	r := Request{"method": "rtm.auth.getFrob"}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return FrobResp{}, err
 	}
-	fr := m["rsp"]
-	if fr.Status == "fail" {
-		return FrobResp{}, &fr.Error
-	}
-	return fr, nil
+	return m.RSP, m.RSP.IsOK()
 }
 
 // Token returns an auth Token
-// NB: server returns TokenResp, AuthResp is extracted
-func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
-	var m map[string]TokenResp
+func (c *Client) Token(ctx context.Context, f string) (TokenResp, error) {
+	var m tokenResp
 	r := Request{"method": "rtm.auth.getToken", "frob": f}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
-		return AuthResp{}, err
+		return TokenResp{}, err
 	}
-	tr := m["rsp"]
-	if tr.Status == "fail" {
-		return AuthResp{}, &tr.Error
-	}
-	return tr.Auth, nil
+	return m.RSP, m.RSP.IsOK()
 }
 
 // Echo should echo the sent values
 func (c *Client) Echo(ctx context.Context, p string) (EchoResp, error) {
-	var m map[string]EchoResp
+	var m echoResp
 	r := Request{"method": "rtm.test.echo", "ping": p}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return EchoResp{}, err
 	}
-	er := m["rsp"]
-	if er.Status == "fail" {
-		return EchoResp{}, &er.Error
-	}
-	return er, nil
+	return m.RSP, m.RSP.IsOK()
 }
 
 func mustNotErr(err error) {

@@ -8,17 +8,27 @@ type Session struct {
 	Token  string
 }
 
-// Login should report what user if any is logged in
+// All authenticated commands should be based off session.
+// Unauthenticated commands can be based off client.
+
+// Login reports what user if any is logged in.
 func (s *Session) Login(ctx context.Context) (LoginResp, error) {
 	c := s.parent
-	var m map[string]LoginResp
+	var m loginResp
 	r := Request{"method": "rtm.test.login", "auth_token": s.Token}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return LoginResp{}, err
 	}
-	lr := m["rsp"]
-	if lr.Status == "fail" {
-		return LoginResp{}, &lr.Error
+	return m.RSP, m.RSP.IsOK()
+}
+
+// CheckToken will check validity of supplied token.
+func (s *Session) CheckToken(ctx context.Context) (TokenResp, error) {
+	c := s.parent
+	var m tokenResp
+	r := Request{"method": "rtm.auth.checkToken", "auth_token": s.Token}
+	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
+		return TokenResp{}, err
 	}
-	return lr, nil
+	return m.RSP, m.RSP.IsOK()
 }

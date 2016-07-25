@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/net/context"
 )
 
@@ -34,18 +33,32 @@ func TestMain(m *testing.M) {
 }
 
 func TestEcho(t *testing.T) {
-	Convey("Echo should work", t, func() {
-		expected := "pong"
-		actual, err := c.Echo(ctx, expected)
-		So(err, ShouldBeNil)
-		So(actual.Ping, ShouldEqual, expected)
-	})
+	expected := "pong"
+	actual, err := c.Echo(ctx, expected)
+	if err != nil {
+		t.Errorf("err: expected nil, got %s", err.Error())
+	}
+	if actual.Ping != expected {
+		t.Errorf("ping: expected %s, got %s", expected, actual.Ping)
+	}
 }
 
 func TestLogin(t *testing.T) {
-	Convey("Login should work", t, func() {
-		actual, err := s.Login(ctx)
-		So(err, ShouldBeNil)
-		So(actual.User.ID, ShouldNotBeNil)
-	})
+	actual, err := s.Login(ctx)
+	if err != nil {
+		t.Errorf("err: expected nil, got %s", err.Error())
+	}
+	if actual.User.ID == "" {
+		t.Errorf("User.ID: expected not \"\", got \"\"")
+	}
+}
+
+func TestCheckToken(t *testing.T) {
+	actual, err := s.CheckToken(ctx)
+	if err != nil {
+		t.Errorf("err: expected nil, got %s", err.Error())
+	}
+	if actual.Auth.Token != s.Token {
+		t.Errorf("token: expected %s, got %s", s.Token, actual.Auth.Token)
+	}
 }

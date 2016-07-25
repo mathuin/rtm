@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"testing"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 // keeping this as a table-driven test example until I write another one
@@ -21,7 +19,7 @@ var signtests = []struct {
 	{"1234567890", "987654321", map[string]string{"method": "rtm.tasks.getList", "auth_token": "666a777b999c", "format": "json", "filter": "status:incomplete AND due:never OR due:today"}, "9094df9d88641c8c0f5666accc335761"},
 }
 
-func TestSignTable(t *testing.T) {
+func TestSign(t *testing.T) {
 	for _, tt := range signtests {
 		c := Client{
 			APIKey: tt.clientKey,
@@ -35,55 +33,37 @@ func TestSignTable(t *testing.T) {
 	}
 }
 
-func TestSignConvey(t *testing.T) {
-	for _, tt := range signtests {
-		Convey("Given a client with known key and secret, and a request with known parameters", t, func() {
-			c := Client{
-				APIKey: tt.clientKey,
-				Secret: tt.clientSecret,
-			}
-			r := tt.requestParams
-			Convey("When the request is signed", func() {
-				actual := c.Sign(r)
-				Convey("The signature should match the expected value", func() {
-					So(actual, ShouldEqual, tt.expected)
-				})
-			})
-		})
-	}
-}
-
 func TestReadSecrets(t *testing.T) {
 	inkey := "mykey"
 	insecret := "mysecret"
-	Convey("Given a known working JSON file with key and secrets", t, func() {
-		s := Secrets{
-			APIKey: inkey,
-			Secret: insecret,
-		}
-		b, err := json.Marshal(s)
-		if err != nil {
-			log.Fatal(err)
-		}
-		tmpfile, err := ioutil.TempFile("", "secrets")
-		if err != nil {
-			log.Fatal(err)
-		}
-		if _, err := tmpfile.Write(b); err != nil {
-			log.Fatal(err)
-		}
-		if err := tmpfile.Close(); err != nil {
-			log.Fatal(err)
-		}
-		Convey("When the file is read", func() {
-			c := Client{}
-			c.readSecrets(tmpfile.Name())
-			Convey("The client's secrets should be set to the values from the file", func() {
-				So(c.APIKey, ShouldEqual, inkey)
-				So(c.Secret, ShouldEqual, insecret)
-			})
-		})
-	})
+	s := Secrets{
+		APIKey: inkey,
+		Secret: insecret,
+	}
+	b, err := json.Marshal(s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile, err := ioutil.TempFile("", "secrets")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := tmpfile.Write(b); err != nil {
+		log.Fatal(err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		log.Fatal(err)
+	}
+	c := Client{}
+	c.readSecrets(tmpfile.Name())
+
+	if c.APIKey != inkey {
+		t.Errorf("token: expected %s, got %s", inkey, c.APIKey)
+	}
+
+	if c.Secret != insecret {
+		t.Errorf("token: expected %s, got %s", insecret, c.Secret)
+	}
 }
 
 var urltests = []struct {
@@ -98,19 +78,15 @@ var urltests = []struct {
 
 func TestUrl(t *testing.T) {
 	for _, tt := range urltests {
-		Convey("Given a client with known key and secret, a request with known parameters, and a base URL", t, func() {
-			c := Client{
-				APIKey: tt.clientKey,
-				Secret: tt.clientSecret,
-			}
-			r := tt.requestParams
-			s := AuthServicesURL
-			Convey("When the full URL is created", func() {
-				actual := c.url(s, r)
-				Convey("It should match the expected value", func() {
-					So(actual, ShouldEqual, tt.expected)
-				})
-			})
-		})
+		c := Client{
+			APIKey: tt.clientKey,
+			Secret: tt.clientSecret,
+		}
+		r := tt.requestParams
+		s := AuthServicesURL
+		actual := c.url(s, r)
+		if actual != tt.expected {
+			t.Errorf("url: expected %s, got %s", tt.expected, actual)
+		}
 	}
 }
