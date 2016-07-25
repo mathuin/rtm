@@ -27,9 +27,7 @@ func TestSignTable(t *testing.T) {
 			APIKey: tt.clientKey,
 			Secret: tt.clientSecret,
 		}
-		r := Request{
-			Parameters: tt.requestParams,
-		}
+		r := tt.requestParams
 		actual := c.Sign(r)
 		if actual != tt.expected {
 			t.Errorf("Sign with Client key %q, secret %q, and Request params %q => %q, want %q", tt.clientKey, tt.clientSecret, tt.requestParams, actual, tt.expected)
@@ -44,9 +42,7 @@ func TestSignConvey(t *testing.T) {
 				APIKey: tt.clientKey,
 				Secret: tt.clientSecret,
 			}
-			r := Request{
-				Parameters: tt.requestParams,
-			}
+			r := tt.requestParams
 			Convey("When the request is signed", func() {
 				actual := c.Sign(r)
 				Convey("The signature should match the expected value", func() {
@@ -107,9 +103,7 @@ func TestUrl(t *testing.T) {
 				APIKey: tt.clientKey,
 				Secret: tt.clientSecret,
 			}
-			r := Request{
-				Parameters: tt.requestParams,
-			}
+			r := tt.requestParams
 			s := AuthServicesURL
 			Convey("When the full URL is created", func() {
 				actual := c.url(s, r)

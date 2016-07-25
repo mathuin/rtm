@@ -82,14 +82,12 @@ func (c *Client) secret() string {
 }
 
 // Request contains parameters
-type Request struct {
-	Parameters map[string]string
-}
+type Request map[string]string
 
 // Sign will generate API signature for a particular Request
 func (c *Client) Sign(r Request) string {
 	// add client's APIKey as value with key 'api_key' to request parameters
-	params := r.Parameters
+	params := r
 	params["api_key"] = c.apiKey()
 
 	// sort parameters by key value alphabetically
@@ -121,9 +119,7 @@ func (c *Client) CreateSession(ctx context.Context) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := Request{
-		Parameters: map[string]string{"perms": "delete", "frob": m.Frob},
-	}
+	r := Request{"perms": "delete", "frob": m.Frob}
 	u := c.url(c.urlAuth(), r)
 
 	// fmt.Printf("Visit the following URL in your web browser: %s\n", u)
@@ -168,13 +164,13 @@ func (c *Client) url(s string, r Request) string {
 	q := u.Query()
 
 	// force format to json
-	r.Parameters["format"] = "json"
+	r["format"] = "json"
 
 	// then api_key
 	q.Set("api_key", c.apiKey())
 
 	// then parameters
-	for k, v := range r.Parameters {
+	for k, v := range r {
 		q.Set(k, v)
 	}
 
@@ -219,9 +215,7 @@ func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) e
 // Frob should return a frob value.
 func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
 	var m map[string]FrobResp
-	r := Request{
-		Parameters: map[string]string{"method": "rtm.auth.getFrob"},
-	}
+	r := Request{"method": "rtm.auth.getFrob"}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return FrobResp{}, err
 	}
@@ -236,9 +230,7 @@ func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
 // NB: server returns TokenResp, AuthResp is extracted
 func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 	var m map[string]TokenResp
-	r := Request{
-		Parameters: map[string]string{"method": "rtm.auth.getToken", "frob": f},
-	}
+	r := Request{"method": "rtm.auth.getToken", "frob": f}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return AuthResp{}, err
 	}
@@ -252,9 +244,7 @@ func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 // Echo should echo the sent values
 func (c *Client) Echo(ctx context.Context, p string) (EchoResp, error) {
 	var m map[string]EchoResp
-	r := Request{
-		Parameters: map[string]string{"method": "rtm.test.echo", "ping": p},
-	}
+	r := Request{"method": "rtm.test.echo", "ping": p}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return EchoResp{}, err
 	}

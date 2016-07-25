@@ -12,13 +12,10 @@ type Session struct {
 func (s *Session) Login(ctx context.Context) (LoginResp, error) {
 	c := s.parent
 	var m map[string]LoginResp
-	r := Request{
-		Parameters: map[string]string{"method": "rtm.test.login", "auth_token": s.Token},
-	}
+	r := Request{"method": "rtm.test.login", "auth_token": s.Token}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return LoginResp{}, err
 	}
-	// FIXME: return something useful
 	lr := m["rsp"]
 	if lr.Status == "fail" {
 		return LoginResp{}, &lr.Error
