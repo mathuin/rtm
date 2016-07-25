@@ -16,7 +16,7 @@ var s *Session
 var ctx context.Context
 var cancel context.CancelFunc
 
-// Create a file named info.json and put it at th eroot of your project.  That file should contain a valid API key and shared secret from RTM.
+// Create a file named info.json and put it at the root of your project.  That file should contain a valid API key and shared secret from RTM.
 // run `go test -v --tags=integration .` to start integration tests.
 func TestMain(m *testing.M) {
 	c = Client{}
@@ -44,7 +44,8 @@ func TestEcho(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	Convey("Login should work", t, func() {
-		_, err := c.Login(ctx)
+		actual, err := s.Login(ctx)
 		So(err, ShouldBeNil)
+		So(actual.User.ID, ShouldNotBeNil)
 	})
 }

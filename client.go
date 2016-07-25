@@ -271,31 +271,11 @@ func (c *Client) Echo(ctx context.Context, p string) (EchoResp, error) {
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return EchoResp{}, err
 	}
-	fmt.Printf("echo response: %q", m)
 	er := m["rsp"]
 	if er.Status == "fail" {
 		return EchoResp{}, &er.Error
 	}
 	return er, nil
-}
-
-// Login should report what user if any is logged in
-func (c *Client) Login(ctx context.Context) (LoginResp, error) {
-	var m map[string]LoginResp
-	r := Request{
-		Method:     "rtm.test.login",
-		Parameters: map[string]string{},
-	}
-	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
-		return LoginResp{}, err
-	}
-	// FIXME: return something useful
-	fmt.Printf("login response: %q", m)
-	lr := m["rsp"]
-	if lr.Status == "fail" {
-		return LoginResp{}, &lr.Error
-	}
-	return lr, nil
 }
 
 func mustNotErr(err error) {

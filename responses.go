@@ -29,11 +29,17 @@ type TokenResp struct {
 	Auth AuthResp `json:"auth"`
 }
 
+type userResp struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Fullname string `json:"fullname"`
+}
+
 // AuthResp is the content of the auth tag from rtm.auth.getToken
 type AuthResp struct {
-	Token string `json:"token"`
-	Perms string `json:"perms"`
-	// User
+	Token string   `json:"token"`
+	Perms string   `json:"perms"`
+	User  userResp `json:"user"`
 }
 
 // EchoResp is the expected response from rtm.test.echo
@@ -45,6 +51,7 @@ type EchoResp struct {
 // LoginResp is the expected response from rtm.test.login
 type LoginResp struct {
 	baseResp
+	User userResp `json:"user"`
 }
 
 type arbResp interface{}
