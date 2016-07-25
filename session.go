@@ -13,8 +13,7 @@ func (s *Session) Login(ctx context.Context) (LoginResp, error) {
 	c := s.parent
 	var m map[string]LoginResp
 	r := Request{
-		Method:     "rtm.test.login",
-		Parameters: map[string]string{"auth_token": s.Token},
+		Parameters: map[string]string{"method": "rtm.test.login", "auth_token": s.Token},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return LoginResp{}, err

@@ -82,9 +82,7 @@ func (c *Client) secret() string {
 }
 
 // Request contains parameters
-// FIXME: make Method just another parameter
 type Request struct {
-	Method     string
 	Parameters map[string]string
 }
 
@@ -92,9 +90,6 @@ type Request struct {
 func (c *Client) Sign(r Request) string {
 	// add client's APIKey as value with key 'api_key' to request parameters
 	params := r.Parameters
-	if r.Method != "" {
-		params["method"] = r.Method
-	}
 	params["api_key"] = c.apiKey()
 
 	// sort parameters by key value alphabetically
@@ -175,11 +170,6 @@ func (c *Client) url(s string, r Request) string {
 	// force format to json
 	r.Parameters["format"] = "json"
 
-	// include method in parameters if needed
-	if r.Method != "" {
-		r.Parameters["method"] = r.Method
-	}
-
 	// then api_key
 	q.Set("api_key", c.apiKey())
 
@@ -230,8 +220,7 @@ func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) e
 func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
 	var m map[string]FrobResp
 	r := Request{
-		Method:     "rtm.auth.getFrob",
-		Parameters: map[string]string{},
+		Parameters: map[string]string{"method": "rtm.auth.getFrob"},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return FrobResp{}, err
@@ -248,8 +237,7 @@ func (c *Client) Frob(ctx context.Context) (FrobResp, error) {
 func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 	var m map[string]TokenResp
 	r := Request{
-		Method:     "rtm.auth.getToken",
-		Parameters: map[string]string{"frob": f},
+		Parameters: map[string]string{"method": "rtm.auth.getToken", "frob": f},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return AuthResp{}, err
@@ -265,8 +253,7 @@ func (c *Client) Token(ctx context.Context, f string) (AuthResp, error) {
 func (c *Client) Echo(ctx context.Context, p string) (EchoResp, error) {
 	var m map[string]EchoResp
 	r := Request{
-		Method:     "rtm.test.echo",
-		Parameters: map[string]string{"ping": p},
+		Parameters: map[string]string{"method": "rtm.test.echo", "ping": p},
 	}
 	if err := c.doReqURL(ctx, c.url(c.urlBase(), r), &m); err != nil {
 		return EchoResp{}, err
