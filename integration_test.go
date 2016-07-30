@@ -4,6 +4,7 @@ package rtm
 
 import (
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,7 +16,14 @@ var s *Session
 var ctx context.Context
 var cancel context.CancelFunc
 
-// Create a file named info.json and put it at the root of your project.  That file should contain a valid API key and shared secret from RTM.
+func mustNotErr(err error) {
+	if err != nil {
+		panic("Unexpected error: " + err.Error())
+	}
+}
+
+// Create a file named info.json and put it at the root of your project.
+// That file should contain a valid API key and shared secret from RTM.
 // run `go test -v --tags=integration .` to start integration tests.
 func TestMain(m *testing.M) {
 	c = Client{}
@@ -60,5 +68,15 @@ func TestCheckToken(t *testing.T) {
 	}
 	if actual.Auth.Token != s.Token {
 		t.Errorf("token: expected %s, got %s", s.Token, actual.Auth.Token)
+	}
+}
+
+func TestTimeline(t *testing.T) {
+	actual, err := s.Timeline(ctx)
+	if err != nil {
+		t.Errorf("err: expected nil, got %s", err.Error())
+	}
+	if _, err := strconv.Atoi(actual.Timeline); err != nil {
+		t.Errorf("Timeline: expected integer, got %s", actual.Timeline)
 	}
 }

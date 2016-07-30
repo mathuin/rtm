@@ -74,4 +74,14 @@ type loginResp struct {
 	RSP LoginResp `json:"rsp"`
 }
 
+// TimelineResp is the expected response from rtm.timelines.create
+type TimelineResp struct {
+	baseResp
+	Timeline string `json:"timeline"`
+}
+
+type timelineResp struct {
+	RSP TimelineResp `json:"rsp"`
+}
+
 type arbResp interface{}
