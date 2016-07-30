@@ -36,11 +36,23 @@ type Secrets struct {
 
 // Client can create RTM sessions and interact with the API.
 type Client struct {
+	Ctx        context.Context
 	APIKey     string
 	Secret     string
 	HTTPClient http.Client
 	AuthURL    string
 	BaseURL    string
+}
+
+func (c *Client) ctx() context.Context {
+	if c.Ctx == nil {
+		panic("context undefined")
+	}
+	return c.Ctx
+}
+
+func (c *Client) setctx(newctx context.Context) {
+	c.Ctx = newctx
 }
 
 func (c *Client) apiKey() string {
@@ -144,7 +156,9 @@ func (c *Client) url(s string, r Request) string {
 	return u.String()
 }
 
-func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) error {
+func (c *Client) doReqURL(u string, jsonInto interface{}) error {
+	ctx := c.ctx()
+
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return err
@@ -170,4 +184,10 @@ func (c *Client) doReqURL(ctx context.Context, u string, jsonInto interface{}) e
 		return err
 	}
 	return nil
+}
+
+func mustNotErr(err error) {
+	if err != nil {
+		panic("Unexpected error: " + err.Error())
+	}
 }

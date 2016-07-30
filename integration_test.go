@@ -13,14 +13,6 @@ import (
 
 var c Client
 var s *Session
-var ctx context.Context
-var cancel context.CancelFunc
-
-func mustNotErr(err error) {
-	if err != nil {
-		panic("Unexpected error: " + err.Error())
-	}
-}
 
 // Create a file named info.json and put it at the root of your project.
 // That file should contain a valid API key and shared secret from RTM.
@@ -31,7 +23,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 	s, err = c.CreateSession(ctx)
 	mustNotErr(err)
@@ -42,7 +34,7 @@ func TestMain(m *testing.M) {
 
 func TestEcho(t *testing.T) {
 	expected := "pong"
-	actual, err := c.Echo(ctx, expected)
+	actual, err := c.Echo(expected)
 	if err != nil {
 		t.Errorf("err: expected nil, got %s", err.Error())
 	}
@@ -52,7 +44,7 @@ func TestEcho(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	actual, err := s.Login(ctx)
+	actual, err := s.Login()
 	if err != nil {
 		t.Errorf("err: expected nil, got %s", err.Error())
 	}
@@ -62,17 +54,17 @@ func TestLogin(t *testing.T) {
 }
 
 func TestCheckToken(t *testing.T) {
-	actual, err := s.CheckToken(ctx)
+	actual, err := s.CheckToken()
 	if err != nil {
 		t.Errorf("err: expected nil, got %s", err.Error())
 	}
 	if actual.Auth.Token != s.Token {
-		t.Errorf("token: expected %s, got %s", s.Token, actual.Auth.Token)
+		t.Errorf("Token: expected %s, got %s", s.Token, actual.Auth.Token)
 	}
 }
 
-func TestTimeline(t *testing.T) {
-	actual, err := s.Timeline(ctx)
+func TestCreateTimeline(t *testing.T) {
+	actual, err := s.CreateTimeline()
 	if err != nil {
 		t.Errorf("err: expected nil, got %s", err.Error())
 	}
